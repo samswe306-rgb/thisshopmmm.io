@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thisshop Myanmar - Shopping Online</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pyidaungsu:wght@400;700&display=swap');
+        body { font-family: 'Pyidaungsu', sans-serif; background: #f7f7f7; }
+        .promo-gradient { background: linear-gradient(90deg, #ff4e00 0%, #ff8a00 100%); }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <nav class="bg-white shadow-sm sticky top-0 z-50">
+            <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+                <div class="text-3xl font-extrabold text-orange-500 cursor-pointer" @click="view = 'home'">Thisshop</div>
+                
+                <div class="flex-1 mx-8 relative">
+                    <input type="text" v-model="search" :placeholder="t('search_placeholder')" class="w-full bg-gray-100 rounded-full px-5 py-2 focus:ring-2 focus:ring-orange-400 outline-none">
+                </div>
+
+                <div class="flex items-center gap-5">
+                    <button @click="toggleLang" class="text-xs font-bold bg-gray-200 px-2 py-1 rounded">{{ lang }}</button>
+                    
+                    <div v-if="currentUser" class="flex items-center gap-4">
+                        <div class="relative cursor-pointer" @click="view = 'cart'">
+                            <i class="fa fa-shopping-bag text-xl"></i>
+                            <span class="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] rounded-full px-1.5">{{ cart.length }}</span>
+                        </div>
+                        <button @click="view = 'profile'" class="text-gray-700 font-bold underline">{{ currentUser.name }}</button>
+                        <button @click="logout" class="text-xs text-red-500">Logout</button>
+                    </div>
+                    <div v-else>
+                        <button @click="goToLogin" class="bg-orange-500 text-white px-4 py-1.5 rounded-full text-sm font-bold">Login / Sign Up</button>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <main class="container mx-auto px-4 py-6">
+            <div v-if="view === 'home'">
+                <div class="relative h-48 md:h-96 rounded-3xl overflow-hidden mb-8 shadow-xl">
+                    <div class="flex transition-transform duration-700 h-full" :style="{ transform: `translateX(-${activeSlide * 100}%)` }">
+                        <div v-for="b in banners" class="min-w-full relative">
+                            <img :src="b.url" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-black/20 flex items-center p-12">
+                                <h2 class="text-white text-4xl font-bold leading-tight">{{ b.text }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                        <div v-for="(b, i) in banners" @click="activeSlide = i" :class="['w-3 h-3 rounded-full cursor-pointer', activeSlide === i ? 'bg-orange-500' : 'bg-white/50']"></div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mb-8 overflow-x-auto no-scrollbar">
+                    <button v-for="c in categories" @click="selCat = c.id" :class="['px-8 py-2.5 rounded-xl shadow-sm transition-all whitespace-nowrap font-bold', selCat === c.id ? 'bg-orange-500 text-white' : 'bg-white text-gray-600 hover:bg-orange-50']">
+                        {{ lang === 'MY' ? c.my : c.en }}
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-5">
+                    <div v-for="p in filteredProducts" class="bg-white rounded-2xl p-4 shadow-sm hover:shadow-xl transition-all cursor-pointer border border-transparent hover:border-orange-200" @click="openDetail(p)">
+                        <div class="h-44 rounded-xl overflow-hidden mb-4 relative">
+                            <video v-if="p.isVideo" autoplay muted loop class="w-full h-full object-cover"><source src="https://www.w3schools.com/html/mov_bbb.mp4"></video>
+                            <img v-else :src="p.img" class="w-full h-full object-cover">
+                            <span v-if="p.isVideo" class="absolute top-2 right-2 bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
+                        </div>
+                        <h3 class="text-sm font-semibold text-gray-800 line-clamp-2 h-10">{{ p.name }}</h3>
+                        <p class="text-orange-600 font-extrabold text-xl mt-2">{{ p.price.toLocaleString() }} Ks</p>
+                        <div class="flex items-center gap-1 mt-1">
+                            <div class="text-yellow-400 text-xs"><i class="fa fa-star" v-for="i in 5"></i></div>
+                            <span class="text-gray-400 text-[10px] italic">({{ p.reviews }} reviews)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="view === 'detail'" class="max-w-5xl mx-auto bg-white rounded-3xl p-8 shadow-lg flex flex-col md:flex-row gap-10">
+                <div class="flex-1">
+                    <img :src="selectedProduct.img" class="w-full rounded-2xl shadow-md border">
+                </div>
+                <div class="flex-1">
+                    <span class="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-xs font-bold">Thisshop Mall</span>
+                    <h1 class="text-3xl font-bold mt-4">{{ selectedProduct.name }}</h1>
+                    <div class="flex items-center gap-4 my-6">
+                        <p class="text-4xl font-extrabold text-orange-500">{{ selectedProduct.price.toLocaleString() }} Ks</p>
+                        <p class="text-gray-400 line-through text-sm">{{ (selectedProduct.price * 1.2).toLocaleString() }} Ks</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded-xl mb-6">
+                        <p class="text-sm text-gray-600 leading-relaxed">{{ selectedProduct.desc }}</p>
+                    </div>
+                    <button @click="addToCart(selectedProduct)" class="w-full promo-gradient text-white py-4 rounded-2xl font-bold text-lg shadow-lg transform hover:scale-105 transition">
+                        <i class="fa fa-cart-plus mr-2"></i> {{ t('add_to_cart') }}
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="view === 'cart'" class="max-w-4xl mx-auto bg-white p-8 rounded-3xl shadow-xl">
+                <h2 class="text-2xl font-extrabold mb-8">{{ t('cart') }}</h2>
+                <div v-if="cart.length === 0" class="text-center py-20 text-gray-400">
+                    <i class="fa fa-shopping-basket text-6xl mb-4"></i>
+                    <p>{{ t('empty_cart') }}</p>
+                </div>
+                <div v-else>
+                    <div v-for="item in cart" class="flex items-center justify-between border-b py-6">
+                        <div class="flex items-center gap-6">
+                            <img :src="item.img" class="w-20 h-20 rounded-xl object-cover border">
+                            <div>
+                                <p class="font-bold text-lg">{{ item.name }}</p>
+                                <p class="text-orange-500 font-bold">{{ (item.price * item.qty).toLocaleString() }} Ks</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button @click="updateQty(item, -1)" class="w-10 h-10 bg-gray-100 rounded-full font-bold">-</button>
+                            <span class="font-extrabold text-lg">{{ item.qty }}</span>
+                            <button @click="updateQty(item, 1)" class="w-10 h-10 bg-gray-100 rounded-full font-bold">+</button>
+                        </div>
+                    </div>
+                    <div class="mt-8 p-6 bg-orange-50 rounded-2xl border border-orange-200">
+                        <h3 class="font-bold text-xl mb-4 text-orange-800">{{ t('payment_info') }}</h3>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div class="bg-white p-4 rounded-xl border-2 border-orange-200">
+                                <p class="text-xs text-gray-500">Account Name</p>
+                                <p class="text-xl font-extrabold text-gray-800 uppercase">U TIN MAUNG</p>
+                                <p class="text-sm text-orange-600 font-bold mt-2">KPay / Wave: 09 123 456 789</p>
+                            </div>
+                            <div class="bg-white p-4 rounded-xl border border-dashed border-gray-400">
+                                <label class="block text-sm font-bold mb-2">Upload Slip</label>
+                                <input type="file" @change="handleFileUpload" class="text-xs">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center mt-10">
+                        <span class="text-2xl font-extrabold">Total: {{ cartTotal.toLocaleString() }} Ks</span>
+                        <button @click="checkout" class="bg-green-600 text-white px-12 py-4 rounded-2xl font-extrabold text-xl shadow-lg">Confirm Order</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="view === 'profile'" class="max-w-4xl mx-auto">
+                <h2 class="text-2xl font-bold mb-8">{{ t('order_history') }}</h2>
+                <div v-for="o in myOrders" class="bg-white p-6 rounded-2xl mb-6 shadow-md border-l-8" :class="o.status === 'Success' ? 'border-green-500' : 'border-orange-500'">
+                    <div class="flex justify-between items-center border-b pb-4 mb-4">
+                        <span class="font-bold">#ORD-{{ o.id }}</span>
+                        <span :class="statusClass(o.status)">{{ o.status }}</span>
+                    </div>
+                    <div class="space-y-2 mb-6">
+                        <div v-for="i in o.items" class="flex justify-between text-sm">
+                            <span>{{ i.name }} x{{ i.qty }}</span>
+                            <span class="font-bold">{{ (i.price * i.qty).toLocaleString() }} Ks</span>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center pt-4 border-t">
+                        <p class="text-lg font-extrabold">Total: {{ o.total.toLocaleString() }} Ks</p>
+                        <button v-if="o.status === 'Pending'" @click="cancelOrder(o.id)" class="bg-red-500 text-white px-6 py-2 rounded-xl text-sm font-bold uppercase">
+                            ပယ်ဖျက်မည် (Cancel)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="bg-gray-900 text-white mt-20 pt-16 pb-10">
+            <div class="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-10">
+                <div>
+                    <h3 class="text-2xl font-extrabold text-orange-500 mb-6">Thisshop</h3>
+                    <p class="text-gray-400 text-sm leading-relaxed">ကျွန်ုပ်တို့သည် မြန်มาနိုင်ငံရှိ လူငယ်များအတွက် အရည်အသွေးမြင့် ကုန်ပစ္စည်းများကို အရစ်ကျစနစ်ဖြင့် လွယ်ကူစွာ ဝယ်ယူနိုင်ရန် ဖန်တီးထားသော Shopping ပလက်ဖောင်းဖြစ်ပါသည်</p>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-6">ကျွန်ုပ်တို့အကြောင်း</h3>
+                    <ul class="text-gray-400 text-sm space-y-3">
+                        <li>About Thisshop</li>
+                        <li>Terms & Conditions</li>
+                        <li>Privacy Policy</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-6">အကူအညီ</h3>
+                    <ul class="text-gray-400 text-sm space-y-3">
+                        <li>Delivery: ၁-၂ ရက် (ရန်ကုန်)</li>
+                        <li>Delivery: ၃-၅ ရက် (နယ်မြို့)</li>
+                        <li>ပို့ဆောင်ခ: အနည်းဆုံး ၁၅၀၀ ကျပ်</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="font-bold text-lg mb-6">ငွေပေးချေမှု (Payment)</h3>
+                    <div class="grid grid-cols-2 gap-2 text-xs">
+                        <span class="bg-gray-800 p-2 rounded border border-gray-700">KPay</span>
+                        <span class="bg-gray-800 p-2 rounded border border-gray-700">WavePay</span>
+                        <span class="bg-gray-800 p-2 rounded border border-gray-700">CB Pay</span>
+                        <span class="bg-gray-800 p-2 rounded border border-gray-700">AYA Pay</span>
+                    </div>
+                    <div class="mt-6">
+                        <h3 class="font-bold mb-2">ဆက်သွယ်ရန်</h3>
+                        <p class="text-gray-400 text-xs">Phone: 09 123 456 789</p>
+                    </div>
+                </div>
+            </div>
+        </footer>
+
+        <div class="fixed bottom-10 right-10 flex flex-col gap-4 z-50">
+            <a href="#" class="bg-purple-600 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform"><i class="fab fa-viber text-2xl"></i></a>
+            <a href="#" class="bg-blue-500 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform"><i class="fab fa-telegram-plane text-2xl"></i></a>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        createApp({
+            data() {
+                return {
+                    view: 'home', lang: 'MY', search: '', selCat: 0, activeSlide: 0,
+                    selectedProduct: null,
+                    currentUser: JSON.parse(localStorage.getItem('currentUser')) || null,
+                    banners: [
+                        { url: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200', text: 'BIG SALE 12.12' },
+                        { url: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?w=1200', text: 'NEW ARRIVALS 2026' }
+                    ],
+                    categories: [
+                        { id: 0, my: 'အားလုံး', en: 'All' },
+                        { id: 1, my: 'ဖုန်းများ', en: 'Phones' },
+                        { id: 2, my: 'လက်တော့ပ်', en: 'Laptops' },
+                        { id: 3, my: 'နာရီ', en: 'Watches' },
+                        { id: 4, my: 'အိမ်သုံး', en: 'Home' }
+                    ],
+                    products: [
+                        { id: 1, catId: 1, name: 'iPhone 15 Pro Max (Titanium)', price: 5500000, img: 'https://images.unsplash.com/photo-1696446701796-da61225697cc?w=400', reviews: 254, desc: 'Original Apple iPhone 15 Pro Max with 1 year warranty.', isVideo: false },
+                        { id: 2, catId: 1, name: 'Samsung Galaxy S24 Ultra (Live)', price: 4800000, img: '', reviews: 189, desc: 'Experience the AI future with Galaxy S24 Ultra.', isVideo: true },
+                        { id: 3, catId: 2, name: 'MacBook Air M3 2026', price: 4200000, img: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400', reviews: 120, desc: 'Thin, light, and powerful M3 Chip.', isVideo: false },
+                        { id: 4, catId: 3, name: 'Apple Watch Series 9 Gold', price: 1200000, img: 'https://images.unsplash.com/photo-1546868871-70c122467d8b?w=400', reviews: 310, desc: 'Advanced health features at your wrist.', isVideo: false },
+                        { id: 5, catId: 4, name: 'Smart Home Robot Vacuum', price: 850000, img: 'https://images.unsplash.com/photo-1527515637462-cff94eecc1ac?w=400', reviews: 75, desc: 'Clean your home automatically with AI sensor.', isVideo: false }
+                    ],
+                    cart: [], orders: JSON.parse(localStorage.getItem('globalOrders')) || [],
+                    translations: {
+                        search_placeholder: { MY: 'ရှာဖွေမည်...', EN: 'Search anything...' },
+                        add_to_cart: { MY: 'ခြင်းထဲသို့ထည့်မည်', EN: 'Add to Cart' },
+                        cart: { MY: 'ဈေးဝယ်ခြင်း', EN: 'My Cart' },
+                        empty_cart: { MY: 'ခြင်းထဲတွင် ဘาမှမရှိသေးပါ။', EN: 'Your cart is lonely.' },
+                        payment_info: { MY: 'ငွေပေးချေမှုအချက်အလက်', EN: 'Payment Details' },
+                        order_history: { MY: 'အော်ဒါမှတ်ตမ်း', EN: 'My Orders' }
+                    }
+                }
+            },
+            computed: {
+                filteredProducts() {
+                    return this.products.filter(p => (this.selCat === 0 || p.catId === this.selCat) && p.name.toLowerCase().includes(this.search.toLowerCase()));
+                },
+                cartTotal() { return this.cart.reduce((s, i) => s + (i.price * i.qty), 0); },
+                myOrders() { return this.orders.filter(o => o.userEmail === this.currentUser?.email); }
+            },
+            methods: {
+                t(k) { return this.translations[k][this.lang]; },
+                toggleLang() { this.lang = this.lang === 'MY' ? 'EN' : 'MY'; },
+                openDetail(p) { this.selectedProduct = p; this.view = 'detail'; window.scrollTo(0,0); },
+                addToCart(p) {
+                    if(!this.currentUser) return this.goToLogin();
+                    let f = this.cart.find(i => i.id === p.id);
+                    if(f) f.qty++; else this.cart.push({...p, qty: 1});
+                    alert('Added!');
+                },
+                updateQty(item, delta) { item.qty += delta; if(item.qty <= 0) this.cart = this.cart.filter(i => i.id !== item.id); },
+                checkout() {
+                    const newOrder = { id: Date.now(), items: [...this.cart], total: this.cartTotal, status: 'Pending', userEmail: this.currentUser.email, date: new Date().toLocaleDateString() };
+                    this.orders.unshift(newOrder);
+                    localStorage.setItem('globalOrders', JSON.stringify(this.orders));
+                    this.cart = []; this.view = 'profile';
+                },
+                cancelOrder(id) {
+                    this.orders = this.orders.map(o => o.id === id ? {...o, status: 'Cancelled'} : o);
+                    localStorage.setItem('globalOrders', JSON.stringify(this.orders));
+                },
+                statusClass(s) {
+                    return { 'text-orange-500': s === 'Pending', 'text-green-500 font-bold': s === 'Success', 'text-red-500': s === 'Cancelled' };
+                },
+                logout() { localStorage.removeItem('currentUser'); window.location.reload(); },
+                goToLogin() { window.location.href = 'auth.html'; }
+            },
+            mounted() { setInterval(() => this.activeSlide = (this.activeSlide + 1) % this.banners.length, 6000); }
+        }).mount('#app');
+    </script>
+</body>
+</html>
