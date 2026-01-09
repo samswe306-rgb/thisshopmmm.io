@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <title>Login - Thisshop</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+    <div id="app" class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-md">
+        <h1 class="text-3xl font-extrabold text-orange-500 text-center mb-10">Thisshop</h1>
+        
+        <div v-if="mode === 'login'">
+            <h2 class="text-xl font-bold mb-6">Login</h2>
+            <input v-model="email" type="email" placeholder="Email" class="w-full border p-3 rounded-xl mb-4 outline-orange-400">
+            <input v-model="pass" type="password" placeholder="Password" class="w-full border p-3 rounded-xl mb-6 outline-orange-400">
+            <button @click="handleLogin" class="w-full bg-orange-500 text-white py-3 rounded-xl font-bold">Login</button>
+            <p class="mt-6 text-center text-sm text-gray-500">Don't have an account? <span @click="mode = 'reg'" class="text-orange-500 cursor-pointer font-bold">Sign Up</span></p>
+        </div>
+
+        <div v-else>
+            <h2 class="text-xl font-bold mb-6">Register</h2>
+            <input v-model="name" type="text" placeholder="Full Name" class="w-full border p-3 rounded-xl mb-4 outline-orange-400">
+            <input v-model="email" type="email" placeholder="Email" class="w-full border p-3 rounded-xl mb-4 outline-orange-400">
+            <input v-model="pass" type="password" placeholder="Password" class="w-full border p-3 rounded-xl mb-6 outline-orange-400">
+            <button @click="handleRegister" class="w-full bg-green-500 text-white py-3 rounded-xl font-bold">Create Account</button>
+            <p class="mt-6 text-center text-sm text-gray-500">Already have account? <span @click="mode = 'login'" class="text-orange-500 cursor-pointer font-bold">Login</span></p>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        createApp({
+            data() { return { mode: 'login', email: '', pass: '', name: '' } },
+            methods: {
+                handleRegister() {
+                    let users = JSON.parse(localStorage.getItem('allUsers')) || [];
+                    users.push({ name: this.name, email: this.email, pass: this.pass });
+                    localStorage.setItem('allUsers', JSON.stringify(users));
+                    alert('Register Success!'); this.mode = 'login';
+                },
+                handleLogin() {
+                    let users = JSON.parse(localStorage.getItem('allUsers')) || [];
+                    let user = users.find(u => u.email === this.email && u.pass === this.pass);
+                    if(user) {
+                        localStorage.setItem('currentUser', JSON.stringify(user));
+                        window.location.href = 'user.html';
+                    } else { alert('Invalid Email or Password'); }
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
